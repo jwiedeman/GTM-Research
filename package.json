@@ -1,0 +1,14 @@
+{
+  "name": "gtm-research",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "lite-server",
+    "serve": "lite-server",
+    "test": "echo \"No automated tests configured\""
+  },
+  "devDependencies": {
+    "lite-server": "^2.6.1"
+  }
+}

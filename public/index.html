@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GTM Load Simulation Suite</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <script type="module" src="./js/app.js" defer></script>
+  </head>
+  <body>
+    <header>
+      <h1>GTM Load Simulation Suite</h1>
+      <p>
+        Experiment with simulated Google Tag Manager containers to understand how
+        pixel tags, DOM-search tags, and nested GTMs impact load time and CPU
+        cost.
+      </p>
+    </header>
+
+    <main>
+      <section id="controls">
+        <h2>Batch Configuration</h2>
+        <form id="batchForm">
+          <fieldset>
+            <legend>Tag scaling</legend>
+            <label>
+              Pixel tags (start / end / step)
+              <input type="number" name="pixelStart" value="5" min="0" />
+              <input type="number" name="pixelEnd" value="25" min="0" />
+              <input type="number" name="pixelStep" value="5" min="1" />
+            </label>
+            <label>
+              DOM-search tags (start / end / step)
+              <input type="number" name="domStart" value="0" min="0" />
+              <input type="number" name="domEnd" value="15" min="0" />
+              <input type="number" name="domStep" value="5" min="1" />
+            </label>
+            <label>
+              Variables/macros (start / end / step)
+              <input type="number" name="varStart" value="10" min="0" />
+              <input type="number" name="varEnd" value="60" min="0" />
+              <input type="number" name="varStep" value="10" min="1" />
+            </label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Nested container scaling</legend>
+            <label>
+              Nested depth (start / end)
+              <input type="number" name="depthStart" value="0" min="0" max="4" />
+              <input type="number" name="depthEnd" value="2" min="0" max="4" />
+            </label>
+            <label>
+              Nested fan-out (containers per level)
+              <input type="number" name="fanOut" value="2" min="1" max="4" />
+            </label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Execution</legend>
+            <label>
+              Iterations per scenario
+              <input type="number" name="iterations" value="5" min="1" max="20" />
+            </label>
+            <label>
+              Artificial network delay (ms)
+              <input type="number" name="network" value="20" min="0" max="200" />
+            </label>
+            <label>
+              DOM complexity (nodes queried per tag)
+              <input type="number" name="domComplexity" value="200" min="10" max="2000" />
+            </label>
+          </fieldset>
+
+          <div class="form-actions">
+            <button type="submit">Run batch</button>
+            <button type="button" id="exampleButton">Load example scenarios</button>
+            <button type="button" id="resetButton">Reset results</button>
+            <button type="button" id="downloadButton" disabled>Download CSV</button>
+          </div>
+        </form>
+
+        <p class="hint">
+          The suite generates combinations for the provided ranges and executes
+          them sequentially to avoid skewing measurements.
+        </p>
+        <div id="status"></div>
+      </section>
+
+      <section id="results">
+        <h2>Scenario Results</h2>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Pixel tags</th>
+                <th>DOM tags</th>
+                <th>Variables</th>
+                <th>Depth</th>
+                <th>Fan-out</th>
+                <th>Avg load (ms)</th>
+                <th>Avg CPU busy (ms)</th>
+                <th>Std Dev (ms)</th>
+              </tr>
+            </thead>
+            <tbody id="resultsBody"></tbody>
+          </table>
+        </div>
+        <canvas id="summaryChart" height="280"></canvas>
+      </section>
+
+      <section id="log">
+        <h2>Execution log</h2>
+        <pre id="logOutput"></pre>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        Created for experimentation with GTM-style containers without depending on
+        external accounts. Customize the simulation logic in
+        <code>public/js/mockGtm.js</code>.
+      </p>
+    </footer>
+  </body>
+</html>
