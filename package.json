@@ -6,9 +6,13 @@
   "scripts": {
     "start": "lite-server",
     "serve": "lite-server",
-    "test": "echo \"No automated tests configured\""
+    "test": "echo \"No automated tests configured\"",
+    "benchmark": "node ./cli/run-benchmark.mjs --config ./configs/baseline.json"
   },
   "devDependencies": {
     "lite-server": "^2.6.1"
+  },
+  "dependencies": {
+    "jsdom": "^24.0.0"
   }
 }
