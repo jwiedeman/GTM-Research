@@ -1,5 +1,5 @@
 import { buildContainerConfig, executeScenario } from './mockGtm.js';
-import { exampleScenarios } from './scenarios.js';
+import { createScenario, exampleScenarios } from './scenarios.js';
 
 const form = document.getElementById('batchForm');
 const statusEl = document.getElementById('status');
@@ -9,9 +9,14 @@ const downloadButton = document.getElementById('downloadButton');
 const resetButton = document.getElementById('resetButton');
 const exampleButton = document.getElementById('exampleButton');
 const chartCanvas = document.getElementById('summaryChart');
+const scenarioJsonInput = document.getElementById('scenarioJson');
+const scenarioList = document.getElementById('scenarioList');
+const parseScenarioButton = document.getElementById('parseScenarioButton');
+const runLibraryButton = document.getElementById('runLibraryButton');
 
 let chartInstance = null;
 let collectedResults = [];
+let parsedScenarioLibrary = [];
 
 function log(message) {
   const time = new Date().toISOString();
@@ -195,6 +200,91 @@ function updateDownloadButton() {
   downloadButton.disabled = collectedResults.length === 0;
 }
 
+function normaliseNumber(value, fallback) {
+  const numeric = Number.parseFloat(value);
+  if (Number.isNaN(numeric)) {
+    return fallback;
+  }
+  return numeric;
+}
+
+function parseScenarioDefinitions(text) {
+  let payload;
+  try {
+    payload = JSON.parse(text);
+  } catch (error) {
+    throw new Error(`Invalid JSON: ${error.message}`);
+  }
+
+  const candidates = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.scenarios)
+    ? payload.scenarios
+    : [];
+
+  if (candidates.length === 0) {
+    throw new Error('No scenarios found in payload. Provide an array or {"scenarios": []}.');
+  }
+
+  return candidates.map((candidate, index) => {
+    if (!candidate || typeof candidate !== 'object') {
+      throw new Error(`Scenario at index ${index} is not an object.`);
+    }
+
+    const id = candidate.id || candidate.name || `json-${index + 1}`;
+    const scenario = createScenario({
+      id,
+      pixelTags: normaliseNumber(candidate.pixelTags, 0),
+      domTags: normaliseNumber(candidate.domTags, 0),
+      variables: normaliseNumber(candidate.variables, 0),
+      depth: normaliseNumber(candidate.depth ?? candidate.nestedDepth, 0),
+      fanOut: normaliseNumber(candidate.fanOut ?? candidate.nestedFanOut, 1) || 1,
+      domComplexity: normaliseNumber(candidate.domComplexity ?? candidate.domSearchComplexity, 120),
+      iterations: normaliseNumber(candidate.iterations ?? candidate.runs, 5) || 1,
+      networkDelay: normaliseNumber(candidate.networkDelay ?? candidate.network, 20),
+    });
+
+    return scenario;
+  });
+}
+
+function persistScenarioJson(text) {
+  try {
+    localStorage.setItem('gtm-simulator-scenarios', text);
+  } catch (error) {
+    console.warn('Unable to persist scenarios to localStorage', error);
+  }
+}
+
+function restoreScenarioJson() {
+  try {
+    return localStorage.getItem('gtm-simulator-scenarios') ?? '';
+  } catch (error) {
+    console.warn('Unable to read scenarios from localStorage', error);
+    return '';
+  }
+}
+
+function renderScenarioLibrary() {
+  scenarioList.textContent = '';
+  if (parsedScenarioLibrary.length === 0) {
+    const item = document.createElement('li');
+    item.textContent = 'No parsed scenarios yet. Paste JSON and click “Parse”.';
+    scenarioList.appendChild(item);
+    return;
+  }
+
+  parsedScenarioLibrary.forEach((scenario, index) => {
+    const item = document.createElement('li');
+    item.innerHTML = `<strong>${index + 1}. ${scenario.id}</strong> — pixels: ${
+      scenario.pixelTags
+    }, DOM: ${scenario.domTags}, vars: ${scenario.variables}, depth: ${
+      scenario.depth
+    }, fan-out: ${scenario.fanOut}, iterations: ${scenario.iterations}`;
+    scenarioList.appendChild(item);
+  });
+}
+
 function toCSV(rows) {
   const header = [
     'index',
@@ -280,6 +370,46 @@ form.addEventListener('submit', async (event) => {
   });
 });
 
+parseScenarioButton.addEventListener('click', () => {
+  const raw = scenarioJsonInput.value.trim();
+  if (!raw) {
+    updateStatus('Paste JSON scenario definitions before parsing.');
+    return;
+  }
+
+  try {
+    parsedScenarioLibrary = parseScenarioDefinitions(raw);
+    persistScenarioJson(raw);
+    renderScenarioLibrary();
+    runLibraryButton.disabled = parsedScenarioLibrary.length === 0;
+    updateStatus(`Parsed ${parsedScenarioLibrary.length} scenario(s) from JSON.`);
+    log(`Parsed ${parsedScenarioLibrary.length} scenario(s) from JSON payload.`);
+  } catch (error) {
+    updateStatus(`Failed to parse scenario JSON: ${error.message}`);
+    log(`JSON parsing error: ${error.message}`);
+  }
+});
+
+runLibraryButton.addEventListener('click', async () => {
+  if (parsedScenarioLibrary.length === 0) {
+    updateStatus('Parse scenario JSON before running.');
+    return;
+  }
+
+  form.querySelectorAll('button').forEach((button) => {
+    button.disabled = true;
+  });
+  runLibraryButton.disabled = true;
+
+  log(`Running ${parsedScenarioLibrary.length} JSON-defined scenario(s).`);
+  await runScenarios(parsedScenarioLibrary);
+
+  form.querySelectorAll('button').forEach((button) => {
+    button.disabled = false;
+  });
+  runLibraryButton.disabled = false;
+});
+
 resetButton.addEventListener('click', () => {
   collectedResults = [];
   resultsBody.textContent = '';
@@ -315,3 +445,19 @@ downloadButton.addEventListener('click', () => {
 seedDocument();
 ensureChart();
 updateStatus('Ready. Configure ranges and run a batch.');
+
+const restoredJson = restoreScenarioJson();
+if (restoredJson) {
+  scenarioJsonInput.value = restoredJson;
+  try {
+    parsedScenarioLibrary = parseScenarioDefinitions(restoredJson);
+    renderScenarioLibrary();
+    runLibraryButton.disabled = parsedScenarioLibrary.length === 0;
+    log(`Restored ${parsedScenarioLibrary.length} scenario(s) from previous session.`);
+  } catch (error) {
+    log(`Failed to restore scenario JSON: ${error.message}`);
+  }
+} else {
+  renderScenarioLibrary();
+  runLibraryButton.disabled = true;
+}

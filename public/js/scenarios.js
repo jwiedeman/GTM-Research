@@ -1,6 +1,6 @@
 import { buildContainerConfig } from './mockGtm.js';
 
-function createScenario({
+export function createScenario({
   id,
   pixelTags,
   domTags,
