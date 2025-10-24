@@ -1,0 +1,10 @@
+{
+  "pixelTags": [1, 10],
+  "domTags": [0, 5],
+  "variables": [0, 10],
+  "nestedDepth": [0, 2],
+  "fanOut": [1],
+  "iterations": 3,
+  "networkDelay": 20,
+  "domComplexity": 40
+}
