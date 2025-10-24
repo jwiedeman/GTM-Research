@@ -141,6 +141,46 @@ button:not(:disabled):hover {
   min-height: 1.4rem;
 }
 
+#scenarioLibrary textarea {
+  width: 100%;
+  background: rgba(6, 11, 20, 0.9);
+  border: 1px solid rgba(120, 164, 193, 0.35);
+  border-radius: 12px;
+  padding: 0.75rem 0.9rem;
+  color: var(--text);
+  font-family: 'Roboto Mono', ui-monospace, SFMono-Regular;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  resize: vertical;
+  min-height: 200px;
+}
+
+#scenarioLibrary textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.35);
+}
+
+.scenario-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 1rem 0 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.scenario-list li {
+  background: rgba(3, 10, 19, 0.85);
+  border: 1px solid rgba(79, 195, 247, 0.25);
+  border-radius: 10px;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.85rem;
+}
+
+.scenario-list strong {
+  color: var(--accent);
+}
+
 .table-wrapper {
   overflow-x: auto;
 }
