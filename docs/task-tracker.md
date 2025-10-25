@@ -7,6 +7,7 @@
 - Explore exporting per-tag execution traces for deeper CPU attribution charts.
 - Evaluate scripting bridges to push scenario matrices directly into real GTM containers for shadow-load testing.
 - Prototype a Playwright-driven harness to compare Chromium vs. Firefox execution characteristics for the same matrices.
+- Explore exposing an API surface for programmatic scenario submission so external tooling can schedule sweeps without touching the UI/CLI codebase.
 
 ## Upcoming Tasks
 - Build CLI harness that can run the simulation headlessly (e.g. via Playwright) for CI-driven regression testing. _(Completed via Node harness; keep monitoring for browser parity gaps.)_
@@ -14,10 +15,12 @@
 - Automate config templating so batches can pivot between baseline, stress, and regression matrices without manual edits.
 - Add scheduler that rotates through multiple GTM container definitions and captures comparison CSVs automatically.
 - Validate preset-matrix results emitted from the UI against CLI CSV output on a weekly cadence.
+- Stand up lightweight telemetry that records run metadata (commit, date, runtime) alongside CSV exports for reproducibility.
 
 ## In Progress
 - Define MVP acceptance criteria for comparing synthetic vs. real GTM containers.
 - Outline automation flow for ingesting real GTM exports once credentials are provisioned.
+- Draft minimal acceptance test that compares simulated container output with a supplied real GTM snippet to benchmark variance.
 
 ## Completed
 - Initial browser-based simulation UI with batch runner and charting.

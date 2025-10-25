@@ -3,7 +3,8 @@
 This project provides a browser-based harness and headless automation tooling
 for experimenting with simulated Google Tag Manager (GTM) containers. It lets
 you scale the number of pixel tags, DOM-search tags, variables/macros, and
-nested containers to understand how each factor impacts load time and CPU cost.
+nested containers to understand how each factor impacts load time and CPU cost
+without depending on live GTM infrastructure.
 
 ## Features
 
@@ -39,6 +40,12 @@ http://localhost:3000. Open the page in a browser and choose one of three paths:
 
 Click **Load example scenarios** for a quick tour of curated mixes.
 
+### Coordination & roadmap tracking
+
+A rolling task ledger lives in [`docs/task-tracker.md`](docs/task-tracker.md).
+Add new ideas or status updates there instead of replacing existing entries so
+we retain historical context while working toward the MVP.
+
 ## What do collaborators need to supply?
 
 The simulator ships with synthetic primitives so it can be used without access
@@ -53,11 +60,17 @@ live containers you have two options:
    complexity, and network delay. Drop the payload into the Scenario Library or
    upload it as a file and press **Parse JSON**. Entries persist in
    `localStorage`, making it easy to switch between configurations.
+   - Ship matrices that span the canonical research counts (1, 5, 10, 50, 100,
+     200, 500, 1,000) by editing the configs under [`configs/`](configs/) or the
+     browser presets in [`public/configs/`](public/configs/). Both the UI and CLI
+     consume the same JSON layout, so a single document powers automated sweeps
+     and interactive exploration.
 2. **Real GTM container snippet** – provide a GTM container ID and matching
    embed snippet (the standard `<script>` + `<noscript>` block) and inject it in
    [`public/index.html`](public/index.html) or a custom HTML tag. The repository
-   does not call the GTM Management API. If you want the toolchain to pull live
-   containers, share service-account credentials and extend the loader logic (in
+   does not call the GTM Management API and does not require API keys or service
+   accounts by default. If you want the toolchain to pull live containers,
+   supply service-account credentials separately and extend the loader logic (in
    `public/js/app.js` or a dedicated Node utility) to authenticate and fetch the
    container exports.
 
