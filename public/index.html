@@ -49,12 +49,12 @@
             <legend>Nested container scaling</legend>
             <label>
               Nested depth (start / end)
-              <input type="number" name="depthStart" value="0" min="0" max="4" />
-              <input type="number" name="depthEnd" value="2" min="0" max="4" />
+              <input type="number" name="depthStart" value="0" min="0" max="5" />
+              <input type="number" name="depthEnd" value="2" min="0" max="5" />
             </label>
             <label>
               Nested fan-out (containers per level)
-              <input type="number" name="fanOut" value="2" min="1" max="4" />
+              <input type="number" name="fanOut" value="2" min="1" max="5" />
             </label>
           </fieldset>
 
@@ -89,6 +89,33 @@
         <div id="status"></div>
       </section>
 
+      <section id="presetConfigs">
+        <h2>Preset Matrices</h2>
+        <p>
+          Run the same scenario matrices used by the CLI directly in the
+          browser. Pick a configuration, optionally review the generated
+          scenarios, and execute them without re-entering ranges.
+        </p>
+        <div class="preset-controls">
+          <label>
+            Select matrix
+            <select id="presetSelect">
+              <option value="">-- choose a matrix --</option>
+              <option value="./configs/quick-start.json">Quick start sweep</option>
+              <option value="./configs/high-scale.json">High-scale 1-1000 tags</option>
+            </select>
+          </label>
+          <div class="form-actions">
+            <button type="button" id="loadPresetButton">Preview preset</button>
+            <button type="button" id="runPresetButton" disabled>Run preset</button>
+          </div>
+        </div>
+        <p class="hint">
+          Presets are stored under <code>public/configs</code>. Add your own JSON
+          matrices there to make them available in the dropdown.
+        </p>
+      </section>
+
       <section id="scenarioLibrary">
         <h2>Scenario Library</h2>
         <p>
@@ -102,6 +129,10 @@
           spellcheck="false"
           placeholder='{"scenarios": [{"id": "dom-heavy", "pixelTags": 8, "domTags": 16, "variables": 40, "depth": 2, "fanOut": 2}]}'
         ></textarea>
+        <label class="file-input">
+          Load JSON file
+          <input type="file" id="scenarioFileInput" accept="application/json" />
+        </label>
         <div class="form-actions">
           <button type="button" id="parseScenarioButton">Parse JSON</button>
           <button type="button" id="runLibraryButton" disabled>Run parsed scenarios</button>

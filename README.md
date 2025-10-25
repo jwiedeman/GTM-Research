@@ -13,7 +13,11 @@ nested containers to understand how each factor impacts load time and CPU cost.
   requiring a live container ID.
 - Automated batch execution (in-browser and via Node.js) with per-scenario
   averages, standard deviation, and raw run metrics.
-- Scatter plot visualisation (average load vs. CPU busy time) and CSV export for
+- Preset matrix loader that mirrors the CLI configs and executes sweeps straight
+  from the UI.
+- File-upload friendly Scenario Library for swapping JSON payloads without
+  retyping.
+- One-click CSV export: both the UI and CLI emit a consolidated CSV suitable for
   downstream analysis.
 - Curated example scenarios that showcase common tag-mix patterns.
 
@@ -25,27 +29,35 @@ npm run start
 ```
 
 The development server (powered by `lite-server`) serves the static site at
-http://localhost:3000. Open the page in a browser, adjust the range inputs, and
-run a batch to generate metrics. Use the **Load example scenarios** button for a
-quick tour of preconfigured mixes.
+http://localhost:3000. Open the page in a browser and choose one of three paths:
 
-## Providing GTM data
+1. Adjust the range inputs and run a batch to generate bespoke scenarios.
+2. Use the **Preset Matrices** dropdown to preview and execute ready-made
+   configurations (identical to the CLI JSON files under `public/configs/`).
+3. Paste or upload JSON into the **Scenario Library** for precise control over
+   each scenario.
+
+Click **Load example scenarios** for a quick tour of curated mixes.
+
+## What do collaborators need to supply?
 
 The simulator ships with synthetic primitives so it can be used without access
 to a real Google Tag Manager account. When you are ready to compare against
 live containers you have two options:
 
-1. **Paste JSON definitions** (recommended for automated sweeps): export or
+## Providing GTM data
+
+1. **JSON scenario definitions (preferred for automation)** – export or
    hand-author a JSON payload describing the number of pixels, DOM-search tags,
-   variables, nesting depth, and network/iteration overrides. Paste the payload
-   into the **Scenario Library** panel and press **Parse JSON** to load the
-   scenarios. The parsed scenarios persist in `localStorage`, making it easy to
-   switch between configurations and rerun them.
-2. **Inject a real GTM container manually**: supply a GTM container ID and the
-   matching embed snippet in a custom HTML tag or directly in
-   [`public/index.html`](public/index.html). This project does not call the GTM
-   Management API. If you want the toolchain to pull live containers on demand
-   you must provide API credentials and extend the loader logic (for example in
+   variables, nesting depth, and optional overrides for iterations, DOM
+   complexity, and network delay. Drop the payload into the Scenario Library or
+   upload it as a file and press **Parse JSON**. Entries persist in
+   `localStorage`, making it easy to switch between configurations.
+2. **Real GTM container snippet** – provide a GTM container ID and matching
+   embed snippet (the standard `<script>` + `<noscript>` block) and inject it in
+   [`public/index.html`](public/index.html) or a custom HTML tag. The repository
+   does not call the GTM Management API. If you want the toolchain to pull live
+   containers, share service-account credentials and extend the loader logic (in
    `public/js/app.js` or a dedicated Node utility) to authenticate and fetch the
    container exports.
 
@@ -59,8 +71,9 @@ When collaborating with teammates, provide either:
   container).
 - A JSON scenario export that lists the counts for pixels, DOM-search tags,
   variables, network overrides, and nested GTM depth/fan-out.
-  [`configs/baseline.json`](configs/baseline.json) demonstrates how to specify
-  up to 1,000 tags and 5 layers of nested containers.
+  [`configs/high-scale.json`](configs/high-scale.json) demonstrates how to
+  specify up to 1,000 tags, variables, and 5 layers of nested containers with a
+  fan-out of up to 5.
 
 ## Automated benchmarking CLI
 
@@ -72,17 +85,28 @@ npm run benchmark
 node ./cli/run-benchmark.mjs --config ./configs/quick-start.json --output ./results.csv
 ```
 
-The CLI reads a JSON document describing the ranges of pixel tags, DOM-search
-tags, variables, nested depth, and fan-out. Every combination is executed for a
-fixed number of iterations and written to a single CSV file containing one row
-per scenario. Two configuration examples are bundled:
+The CLI accepts either:
+
+- A matrix-style JSON document describing ranges for pixel tags, DOM-search
+  tags, variables, nested depth, and fan-out. Every combination is executed for
+  a fixed number of iterations.
+- A `{ "scenarios": [] }` document listing explicit scenarios with their own
+  overrides (iterations, network delay, DOM complexity, etc.).
+
+Results are written to a single CSV file containing one row per scenario. Three
+configuration examples are bundled:
 
 - [`configs/quick-start.json`](configs/quick-start.json) – compact ranges for
   smoke tests.
-- [`configs/baseline.json`](configs/baseline.json) – exhaustive matrix covering
-  1, 5, 10, 50, 100, 200, 500, and 1,000 pixel tags with nested containers up to
-  depth 5 and fan-out 3. This sweep is CPU intensive; adjust the arrays to focus
-  on the mixes you care about.
+- [`configs/baseline.json`](configs/baseline.json) – balanced matrix for daily
+  benchmarking.
+- [`configs/high-scale.json`](configs/high-scale.json) – exhaustive matrix
+  covering 1, 5, 10, 50, 100, 200, 500, and 1,000 tags/variables with nested
+  containers up to depth 5 and fan-out 5.
+
+To mirror these matrices in the UI, place a copy under `public/configs/` (two
+presets are already bundled) and select it from the **Preset Matrices**
+dropdown.
 
 ### CSV schema
 
