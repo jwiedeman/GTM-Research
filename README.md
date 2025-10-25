@@ -18,8 +18,8 @@ without depending on live GTM infrastructure.
   from the UI.
 - File-upload friendly Scenario Library for swapping JSON payloads without
   retyping.
-- One-click CSV export: both the UI and CLI emit a consolidated CSV suitable for
-  downstream analysis.
+- One-click CSV export: both the UI and CLI emit a consolidated CSV with an
+  identical schema for downstream analysis.
 - Curated example scenarios that showcase common tag-mix patterns.
 
 ## Getting started
@@ -106,8 +106,10 @@ The CLI accepts either:
 - A `{ "scenarios": [] }` document listing explicit scenarios with their own
   overrides (iterations, network delay, DOM complexity, etc.).
 
-Results are written to a single CSV file containing one row per scenario. Three
-configuration examples are bundled:
+Results are written to a single CSV file containing one row per scenario. The
+browser export (Download CSV button) shares the exact same schema so you can mix
+UI and CLI runs without additional cleaning. Three configuration examples are
+bundled:
 
 - [`configs/quick-start.json`](configs/quick-start.json) – compact ranges for
   smoke tests.
@@ -139,6 +141,9 @@ The generated CSV uses the following columns:
 | `mean_load_ms` | Average wall-clock load duration across iterations. |
 | `mean_cpu_busy_ms` | Average CPU busy time across iterations. |
 | `std_deviation_ms` | Standard deviation of the load duration. |
+
+> **Note:** The in-browser CSV export uses this schema as well, making it safe to
+> append UI batches directly into the CLI output without column juggling.
 
 ## Customisation
 
