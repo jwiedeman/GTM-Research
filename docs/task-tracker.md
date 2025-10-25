@@ -28,3 +28,4 @@
 - Node-based benchmarking harness that emits CSV summaries from scenario matrices.
 - Preset matrix loader and JSON file ingestion inside the UI for rapid scenario swapping.
 - CLI support for `{ "scenarios": [] }` payloads plus high-scale matrices covering 1–1,000 tags and five nested GTM layers.
+- Harmonised UI CSV export with CLI schema so mixed-source datasets can be concatenated without manual cleanup.
