@@ -1,4 +1,4 @@
-import { buildContainerConfig, executeScenario } from './mockGtm.js';
+import { executeScenario } from './mockGtm.js';
 import { seedSyntheticDom } from './domSeed.js';
 import { createScenario, exampleScenarios } from './scenarios.js';
 
@@ -14,10 +14,16 @@ const scenarioJsonInput = document.getElementById('scenarioJson');
 const scenarioList = document.getElementById('scenarioList');
 const parseScenarioButton = document.getElementById('parseScenarioButton');
 const runLibraryButton = document.getElementById('runLibraryButton');
+const scenarioFileInput = document.getElementById('scenarioFileInput');
+const presetSelect = document.getElementById('presetSelect');
+const loadPresetButton = document.getElementById('loadPresetButton');
+const runPresetButton = document.getElementById('runPresetButton');
 
 let chartInstance = null;
 let collectedResults = [];
 let parsedScenarioLibrary = [];
+let loadedPresetScenarios = [];
+let loadedPresetLabel = '';
 
 function log(message) {
   const time = new Date().toISOString();
@@ -66,25 +72,18 @@ function buildScenariosFromRanges(values) {
     for (const domTags of generateRange(values.domStart, values.domEnd, values.domStep)) {
       for (const variables of generateRange(values.varStart, values.varEnd, values.varStep)) {
         for (const depth of generateRange(values.depthStart, values.depthEnd, 1)) {
-          const config = buildContainerConfig({
-            pixelTags,
-            domTags,
-            variables,
-            nestedDepth: depth,
-            fanOut: values.fanOut,
-            domComplexity: values.domComplexity,
-          });
-          scenarios.push({
-            id: `scenario-${scenarioIndex += 1}`,
+          const scenario = createScenario({
+            id: `scenario-${(scenarioIndex += 1)}`,
             pixelTags,
             domTags,
             variables,
             depth,
             fanOut: values.fanOut,
-            config,
+            domComplexity: values.domComplexity,
             iterations: values.iterations,
             networkDelay: values.network,
           });
+          scenarios.push(scenario);
         }
       }
     }
@@ -175,6 +174,90 @@ function normaliseNumber(value, fallback) {
   return numeric;
 }
 
+function createScenarioFromDefinition(definition, defaults, index) {
+  return createScenario({
+    id: definition.id || definition.name || `scenario-${index + 1}`,
+    pixelTags: normaliseNumber(definition.pixelTags, defaults.pixelTags),
+    domTags: normaliseNumber(definition.domTags, defaults.domTags),
+    variables: normaliseNumber(definition.variables, defaults.variables),
+    depth: normaliseNumber(
+      definition.depth ?? definition.nestedDepth,
+      defaults.depth,
+    ),
+    fanOut:
+      normaliseNumber(definition.fanOut ?? definition.nestedFanOut, defaults.fanOut) ||
+      1,
+    domComplexity: normaliseNumber(
+      definition.domComplexity ?? definition.domSearchComplexity,
+      defaults.domComplexity,
+    ),
+    iterations:
+      normaliseNumber(definition.iterations ?? definition.runs, defaults.iterations) ||
+      1,
+    networkDelay: normaliseNumber(
+      definition.networkDelay ?? definition.network,
+      defaults.networkDelay,
+    ),
+  });
+}
+
+function buildScenariosFromConfig(config) {
+  const defaults = {
+    pixelTags: normaliseNumber(config.pixelTags?.[0], 0),
+    domTags: normaliseNumber(config.domTags?.[0], 0),
+    variables: normaliseNumber(config.variables?.[0], 0),
+    depth: normaliseNumber(config.nestedDepth?.[0] ?? config.depth, 0),
+    fanOut: normaliseNumber(config.fanOut?.[0], 1) || 1,
+    domComplexity: normaliseNumber(config.domComplexity, 120),
+    iterations: normaliseNumber(config.iterations, 5) || 1,
+    networkDelay: normaliseNumber(config.networkDelay, 20),
+  };
+
+  if (Array.isArray(config.scenarios) && config.scenarios.length > 0) {
+    return config.scenarios.map((entry, index) =>
+      createScenarioFromDefinition(entry, defaults, index),
+    );
+  }
+
+  const pixels = Array.isArray(config.pixelTags) ? config.pixelTags : [defaults.pixelTags];
+  const doms = Array.isArray(config.domTags) ? config.domTags : [defaults.domTags];
+  const variables = Array.isArray(config.variables)
+    ? config.variables
+    : [defaults.variables];
+  const depths = Array.isArray(config.nestedDepth ?? config.depth)
+    ? config.nestedDepth ?? config.depth
+    : [defaults.depth];
+  const fanOuts = Array.isArray(config.fanOut) ? config.fanOut : [defaults.fanOut];
+
+  const scenarios = [];
+  let scenarioIndex = 0;
+  for (const pixelTags of pixels) {
+    for (const domTags of doms) {
+      for (const variableCount of variables) {
+        for (const depth of depths) {
+          for (const fanOut of fanOuts) {
+            scenarios.push(
+              createScenario({
+                id: `scenario-${(scenarioIndex += 1)}`,
+                pixelTags: normaliseNumber(pixelTags, defaults.pixelTags),
+                domTags: normaliseNumber(domTags, defaults.domTags),
+                variables: normaliseNumber(variableCount, defaults.variables),
+                depth: normaliseNumber(depth, defaults.depth),
+                fanOut: normaliseNumber(fanOut, defaults.fanOut) || 1,
+                domComplexity: defaults.domComplexity,
+                iterations: defaults.iterations,
+                networkDelay: defaults.networkDelay,
+              }),
+            );
+          }
+        }
+      }
+    }
+  }
+
+  return scenarios;
+}
+
 function parseScenarioDefinitions(text) {
   let payload;
   try {
@@ -193,25 +276,23 @@ function parseScenarioDefinitions(text) {
     throw new Error('No scenarios found in payload. Provide an array or {"scenarios": []}.');
   }
 
+  const defaults = {
+    pixelTags: 0,
+    domTags: 0,
+    variables: 0,
+    depth: 0,
+    fanOut: 1,
+    domComplexity: 120,
+    iterations: 5,
+    networkDelay: 20,
+  };
+
   return candidates.map((candidate, index) => {
     if (!candidate || typeof candidate !== 'object') {
       throw new Error(`Scenario at index ${index} is not an object.`);
     }
 
-    const id = candidate.id || candidate.name || `json-${index + 1}`;
-    const scenario = createScenario({
-      id,
-      pixelTags: normaliseNumber(candidate.pixelTags, 0),
-      domTags: normaliseNumber(candidate.domTags, 0),
-      variables: normaliseNumber(candidate.variables, 0),
-      depth: normaliseNumber(candidate.depth ?? candidate.nestedDepth, 0),
-      fanOut: normaliseNumber(candidate.fanOut ?? candidate.nestedFanOut, 1) || 1,
-      domComplexity: normaliseNumber(candidate.domComplexity ?? candidate.domSearchComplexity, 120),
-      iterations: normaliseNumber(candidate.iterations ?? candidate.runs, 5) || 1,
-      networkDelay: normaliseNumber(candidate.networkDelay ?? candidate.network, 20),
-    });
-
-    return scenario;
+    return createScenarioFromDefinition(candidate, defaults, index);
   });
 }
 
@@ -297,7 +378,7 @@ async function runScenarios(scenarios) {
     index += 1;
     updateStatus(`Running ${scenario.id} (${index} of ${scenarios.length})...`);
     log(
-      `Scenario ${scenario.id} — pixels: ${scenario.pixelTags}, DOM tags: ${scenario.domTags}, variables: ${scenario.variables}, depth: ${scenario.depth}`
+      `Scenario ${scenario.id} — pixels: ${scenario.pixelTags}, DOM tags: ${scenario.domTags}, variables: ${scenario.variables}, depth: ${scenario.depth}`,
     );
 
     // small pause to allow UI to update between heavy runs
@@ -407,6 +488,83 @@ downloadButton.addEventListener('click', () => {
   anchor.click();
   URL.revokeObjectURL(url);
   log('Exported results to CSV.');
+});
+
+scenarioFileInput?.addEventListener('change', async (event) => {
+  const [file] = event.target.files;
+  if (!file) {
+    return;
+  }
+
+  try {
+    const text = await file.text();
+    scenarioJsonInput.value = text;
+    updateStatus(`Loaded ${file.name}. Click “Parse JSON” to ingest scenarios.`);
+  } catch (error) {
+    updateStatus(`Failed to read ${file.name}: ${error.message}`);
+  }
+});
+
+async function loadPresetConfig(previewOnly = false) {
+  const presetPath = presetSelect?.value;
+  if (!presetPath) {
+    updateStatus('Choose a preset matrix first.');
+    return;
+  }
+
+  try {
+    const response = await fetch(presetPath, { cache: 'no-store' });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const config = await response.json();
+    loadedPresetScenarios = buildScenariosFromConfig(config);
+    loadedPresetLabel = presetPath.split('/').pop();
+    updateStatus(
+      `Loaded preset ${loadedPresetLabel} with ${loadedPresetScenarios.length} scenario(s).` +
+        (previewOnly ? ' Review the Scenario Library or run when ready.' : ''),
+    );
+    log(
+      `Preset ${loadedPresetLabel} ready — ${loadedPresetScenarios.length} scenario(s).`,
+    );
+    runPresetButton.disabled = loadedPresetScenarios.length === 0;
+    if (!previewOnly) {
+      await runScenarios(loadedPresetScenarios);
+    }
+  } catch (error) {
+    updateStatus(`Failed to load preset: ${error.message}`);
+    log(`Preset load error: ${error.message}`);
+  }
+}
+
+loadPresetButton?.addEventListener('click', () => {
+  loadPresetConfig(true);
+});
+
+runPresetButton?.addEventListener('click', async () => {
+  if (!loadedPresetScenarios.length) {
+    await loadPresetConfig(true);
+    if (!loadedPresetScenarios.length) {
+      return;
+    }
+  }
+
+  form.querySelectorAll('button').forEach((button) => {
+    button.disabled = true;
+  });
+  loadPresetButton.disabled = true;
+  runPresetButton.disabled = true;
+
+  log(
+    `Running preset ${loadedPresetLabel} with ${loadedPresetScenarios.length} scenario(s).`,
+  );
+  await runScenarios(loadedPresetScenarios);
+
+  form.querySelectorAll('button').forEach((button) => {
+    button.disabled = false;
+  });
+  loadPresetButton.disabled = false;
+  runPresetButton.disabled = loadedPresetScenarios.length === 0;
 });
 
 seedSyntheticDom();

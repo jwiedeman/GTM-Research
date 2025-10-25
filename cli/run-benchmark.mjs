@@ -66,6 +66,36 @@ function configureDom(options = {}) {
 }
 
 function createScenarios(config) {
+  const defaultIterations = ensureNumber(config.iterations, 5);
+  const defaultNetwork = ensureNumber(config.networkDelay, 20);
+  const defaultDomComplexity = ensureNumber(config.domComplexity, 40);
+
+  if (Array.isArray(config.scenarios) && config.scenarios.length > 0) {
+    return config.scenarios.map((scenario, index) => ({
+      id: scenario.id ?? scenario.name ?? `scenario-${index + 1}`,
+      pixelTags: ensureNumber(scenario.pixelTags, 0),
+      domTags: ensureNumber(scenario.domTags, 0),
+      variables: ensureNumber(scenario.variables, 0),
+      depth: ensureNumber(
+        scenario.depth ?? scenario.nestedDepth,
+        ensureNumber(config.depth, 0),
+      ),
+      fanOut: ensureNumber(
+        scenario.fanOut ?? scenario.nestedFanOut,
+        asArray(config.fanOut ?? [1])[0],
+      ) || 1,
+      iterations: ensureNumber(scenario.iterations, defaultIterations) || 1,
+      networkDelay: ensureNumber(
+        scenario.networkDelay ?? scenario.network,
+        defaultNetwork,
+      ),
+      domComplexity: ensureNumber(
+        scenario.domComplexity ?? scenario.domSearchComplexity,
+        defaultDomComplexity,
+      ),
+    }));
+  }
+
   const pixels = asArray(config.pixelTags ?? [0]);
   const doms = asArray(config.domTags ?? [0]);
   const variables = asArray(config.variables ?? [0]);
@@ -86,6 +116,9 @@ function createScenarios(config) {
               variables: variableCount,
               depth,
               fanOut,
+              iterations: defaultIterations,
+              networkDelay: defaultNetwork,
+              domComplexity: defaultDomComplexity,
             });
           }
         }
@@ -129,10 +162,6 @@ async function run() {
     return;
   }
 
-  const iterations = ensureNumber(config.iterations, 5);
-  const networkDelay = ensureNumber(config.networkDelay, 20);
-  const domComplexity = ensureNumber(config.domComplexity, 40);
-
   const rows = [
     [
       'scenario_id',
@@ -157,12 +186,12 @@ async function run() {
       variables: scenario.variables,
       nestedDepth: scenario.depth,
       fanOut: scenario.fanOut,
-      domComplexity,
+      domComplexity: scenario.domComplexity,
     });
 
     const metrics = await executeScenario(containerConfig, {
-      iterations,
-      networkDelay,
+      iterations: scenario.iterations,
+      networkDelay: scenario.networkDelay,
     });
 
     rows.push([
@@ -172,9 +201,9 @@ async function run() {
       scenario.variables,
       scenario.depth,
       scenario.fanOut,
-      iterations,
-      networkDelay,
-      domComplexity,
+      scenario.iterations,
+      scenario.networkDelay,
+      scenario.domComplexity,
       metrics.meanLoad.toFixed(3),
       metrics.meanBusy.toFixed(3),
       metrics.stdDeviation.toFixed(3),
