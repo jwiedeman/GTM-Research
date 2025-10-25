@@ -34,18 +34,48 @@ async function readJson(filePath) {
   return JSON.parse(raw);
 }
 
-function asArray(value) {
-  if (Array.isArray(value)) {
-    return value;
-  }
-  return [value];
-}
-
 function ensureNumber(value, fallback) {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value;
   }
   return fallback;
+}
+
+function expandRange(definition, fallback, { minimum, coerceInteger = true } = {}) {
+  const toNumber = (value, alt) => {
+    const numeric = ensureNumber(value, alt);
+    if (minimum !== undefined && numeric < minimum) {
+      return minimum;
+    }
+    return coerceInteger ? Math.round(numeric) : numeric;
+  };
+
+  if (definition === undefined || definition === null) {
+    return Array.isArray(fallback) ? fallback : [fallback];
+  }
+
+  if (Array.isArray(definition)) {
+    return definition.map((entry) => toNumber(entry, fallback?.[0] ?? fallback ?? 0));
+  }
+
+  if (typeof definition === 'object') {
+    const start = toNumber(
+      definition.start,
+      Array.isArray(fallback) ? fallback[0] : fallback ?? 0,
+    );
+    const end = toNumber(definition.end ?? start, start);
+    const rawStep = toNumber(definition.step ?? 1, 1);
+    const step = rawStep <= 0 ? 1 : rawStep;
+    const values = [];
+    const ascending = end >= start;
+    const increment = ascending ? step : -step;
+    for (let value = start; ascending ? value <= end : value >= end; value += increment) {
+      values.push(value);
+    }
+    return values;
+  }
+
+  return [toNumber(definition, Array.isArray(fallback) ? fallback[0] : fallback ?? 0)];
 }
 
 function configureDom(options = {}) {
@@ -96,11 +126,11 @@ function createScenarios(config) {
     }));
   }
 
-  const pixels = asArray(config.pixelTags ?? [0]);
-  const doms = asArray(config.domTags ?? [0]);
-  const variables = asArray(config.variables ?? [0]);
-  const depths = asArray(config.nestedDepth ?? config.depth ?? [0]);
-  const fanOuts = asArray(config.fanOut ?? [1]);
+  const pixels = expandRange(config.pixelTags, [0], { minimum: 0 });
+  const doms = expandRange(config.domTags, [0], { minimum: 0 });
+  const variables = expandRange(config.variables, [0], { minimum: 0 });
+  const depths = expandRange(config.nestedDepth ?? config.depth, [0], { minimum: 0 });
+  const fanOuts = expandRange(config.fanOut, [1], { minimum: 1 });
   const scenarios = [];
   let index = 0;
 
