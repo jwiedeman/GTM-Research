@@ -29,3 +29,4 @@
 - Preset matrix loader and JSON file ingestion inside the UI for rapid scenario swapping.
 - CLI support for `{ "scenarios": [] }` payloads plus high-scale matrices covering 1–1,000 tags and five nested GTM layers.
 - Harmonised UI CSV export with CLI schema so mixed-source datasets can be concatenated without manual cleanup.
+- Config range descriptors (`start`/`end`/`step`) accepted by both the CLI and UI preset loader to speed up matrix authoring.

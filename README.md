@@ -112,7 +112,8 @@ UI and CLI runs without additional cleaning. Three configuration examples are
 bundled:
 
 - [`configs/quick-start.json`](configs/quick-start.json) – compact ranges for
-  smoke tests.
+  smoke tests (demonstrates the `start`/`end`/`step` range syntax described
+  below).
 - [`configs/baseline.json`](configs/baseline.json) – balanced matrix for daily
   benchmarking.
 - [`configs/high-scale.json`](configs/high-scale.json) – exhaustive matrix
@@ -144,6 +145,25 @@ The generated CSV uses the following columns:
 
 > **Note:** The in-browser CSV export uses this schema as well, making it safe to
 > append UI batches directly into the CLI output without column juggling.
+
+### Configuring ranges succinctly
+
+Both the CLI and UI preset loader accept either explicit arrays of numbers or a
+compact range descriptor:
+
+```json
+{
+  "pixelTags": { "start": 1, "end": 1000, "step": 4 },
+  "domTags": [0, 10, 25],
+  "variables": { "start": 0, "end": 1000, "step": 5 },
+  "nestedDepth": { "start": 0, "end": 5 },
+  "fanOut": { "start": 1, "end": 5 }
+}
+```
+
+Range objects generate inclusive values and work with descending sequences by
+supplying `start` greater than `end`. Arrays remain fully supported, so existing
+matrices do not need to change.
 
 ## Customisation
 

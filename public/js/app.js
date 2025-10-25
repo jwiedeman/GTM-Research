@@ -174,6 +174,43 @@ function normaliseNumber(value, fallback) {
   return numeric;
 }
 
+function expandConfigRange(definition, fallback, { min, enforceInteger = true } = {}) {
+  const ensure = (value, alt) => {
+    let numeric = normaliseNumber(value, alt);
+    if (min !== undefined && numeric < min) {
+      numeric = min;
+    }
+    return enforceInteger ? Math.round(numeric) : numeric;
+  };
+
+  const fallbackArray = Array.isArray(fallback) ? fallback : [fallback];
+  if (definition === undefined || definition === null) {
+    return fallbackArray;
+  }
+
+  if (Array.isArray(definition)) {
+    return definition.map((entry) => ensure(entry, fallbackArray[0] ?? 0));
+  }
+
+  if (typeof definition === 'object') {
+    const start = ensure(definition.start, fallbackArray[0] ?? 0);
+    const end = ensure(definition.end ?? start, start);
+    let step = ensure(definition.step ?? 1, 1);
+    if (step <= 0) {
+      step = 1;
+    }
+    const ascending = end >= start;
+    const increment = ascending ? step : -step;
+    const values = [];
+    for (let value = start; ascending ? value <= end : value >= end; value += increment) {
+      values.push(value);
+    }
+    return values;
+  }
+
+  return [ensure(definition, fallbackArray[0] ?? 0)];
+}
+
 function createScenarioFromDefinition(definition, defaults, index) {
   return createScenario({
     id: definition.id || definition.name || `scenario-${index + 1}`,
@@ -219,15 +256,13 @@ function buildScenariosFromConfig(config) {
     );
   }
 
-  const pixels = Array.isArray(config.pixelTags) ? config.pixelTags : [defaults.pixelTags];
-  const doms = Array.isArray(config.domTags) ? config.domTags : [defaults.domTags];
-  const variables = Array.isArray(config.variables)
-    ? config.variables
-    : [defaults.variables];
-  const depths = Array.isArray(config.nestedDepth ?? config.depth)
-    ? config.nestedDepth ?? config.depth
-    : [defaults.depth];
-  const fanOuts = Array.isArray(config.fanOut) ? config.fanOut : [defaults.fanOut];
+  const pixels = expandConfigRange(config.pixelTags, defaults.pixelTags, { min: 0 });
+  const doms = expandConfigRange(config.domTags, defaults.domTags, { min: 0 });
+  const variables = expandConfigRange(config.variables, defaults.variables, { min: 0 });
+  const depths = expandConfigRange(config.nestedDepth ?? config.depth, defaults.depth, {
+    min: 0,
+  });
+  const fanOuts = expandConfigRange(config.fanOut, defaults.fanOut, { min: 1 });
 
   const scenarios = [];
   let scenarioIndex = 0;

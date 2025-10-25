@@ -1,9 +1,9 @@
 {
-  "pixelTags": [1, 10],
-  "domTags": [0, 5],
-  "variables": [0, 10],
-  "nestedDepth": [0, 2],
-  "fanOut": [1],
+  "pixelTags": { "start": 1, "end": 10, "step": 9 },
+  "domTags": { "start": 0, "end": 5 },
+  "variables": { "start": 0, "end": 10, "step": 5 },
+  "nestedDepth": { "start": 0, "end": 2 },
+  "fanOut": 1,
   "iterations": 3,
   "networkDelay": 20,
   "domComplexity": 40
